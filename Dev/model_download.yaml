@@ -1,0 +1,25 @@
+kind: Pod
+apiVersion: v1
+metadata:
+  name: sample-pod
+spec:
+  containers:
+  - name: pythonserver
+    image: python:3.12-slim
+    command: ["/bin/sh", "-c"]
+    args:
+      - |
+        set -e
+        apt-get update && \
+        pip install --no-cache-dir huggingface_hub && \
+        tail -f /dev/null
+    ports:
+    - containerPort: 80
+      name: "http"
+    volumeMounts:
+    - mountPath: "/models"
+      name: model-pvc
+  volumes:
+  - name: model-pvc
+    persistentVolumeClaim:
+      claimName: local-llm-pvc

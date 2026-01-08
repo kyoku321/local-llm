@@ -1,0 +1,100 @@
+replicaCount: 1
+image:
+  repository: vllm/vllm-openai
+  tag: v0.10.2
+  pullPolicy: IfNotPresent
+  
+service:
+  type: ClusterIP
+  port: 8000
+resources:
+  limits:
+    nvidia.com/gpu: 1
+nodeSelector:
+  memorysize: "80GB"
+model:
+  name: "openai/gpt-oss-20b"
+  path: "/models/gpt-oss-20b"
+hfToken: "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"  # 将在 Helm 模板中通过 Secret 引用
+
+persistence:
+  enabled: true
+  storageClass: "basic"
+  accessModes:
+    - ReadWriteMany
+  size: 200Gi
+  mountPath: /models
+
+
+# Ingress 的相关配置
+ingress:
+  enabled: true # 设置为 true 来创建 Ingress 资源
+  
+  # 如果你的集群需要，请指定 Ingress Class Name
+  # 例如: "nginx", "traefik" 等
+  className: "nginx"
+
+  # Ingress 的注解 (Annotations)
+  annotations:
+    # 与你的例子保持一致，允许上传大文件
+    nginx.ingress.kubernetes.io/proxy-body-size: "0"
+    cert-manager.io/cluster-issuer: "letsencrypt"
+    # 如果你的 ingress-controller 版本较旧，可能使用这个注解
+    # ingress.kubernetes.io/proxy-body-size: "0"
+  
+  # Ingress 的域名和路径规则
+  hosts:
+    - host: llm.aggpf.gpu-k8s.cloudcore-tu.net # <--- 在这里修改成你的域名
+      serviceType: "llm" # vllm or embedding
+      paths:
+        - path: / # <--- 在这里修改路径
+          pathType: Prefix # 可选值: Exact, Prefix, ImplementationSpecific
+    - host: embedding.aggpf.gpu-k8s.cloudcore-tu.net
+      serviceType: "embedding" # vllm or embedding
+      paths:
+        - path: /
+          pathType: Prefix
+
+  # TLS 配置 (当前已注释，如需启用请取消注释并配置)
+  tls:
+    - hosts:
+        - llm.aggpf.gpu-k8s.cloudcore-tu.net # <--- 域名需要与上面 hosts 中的 host 匹配
+        - embedding.aggpf.gpu-k8s.cloudcore-tu.net
+      secretName: vllm-tls-secret # <--- 包含证书的 Secret 名称
+
+# embedding:
+#   replicaCount: 1
+#   image:
+#     repository: vllm/vllm-openai
+#     tag: v0.10.2
+#     pullPolicy: IfNotPresent
+#   service:
+#     type: ClusterIP
+#     port: 8001
+#   resources:
+#     limits:
+#       nvidia.com/gpu: 1
+#   nodeSelector:
+#     memorysize: "32GB"
+#   model:
+#     name: "Qwen/Qwen3-Embedding-8B"
+#     path: "/models/Qwen3-Embedding-8B"
+
+    
+embedding:
+  replicaCount: 1
+  image:
+    repository: nvidia/cuda
+    tag: 13.0.2-runtime-ubuntu24.04
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8001
+  resources:
+    limits:
+      nvidia.com/gpu: 1
+  nodeSelector:
+    memorysize: "32GB"
+  model:
+    name: "Qwen/Qwen3-Embedding-8B"
+    path: "/models/Qwen3-Embedding-8B"

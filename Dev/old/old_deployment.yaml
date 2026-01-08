@@ -1,0 +1,165 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}
+  labels:
+    app: {{ .Chart.Name }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Chart.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Chart.Name }}
+    spec:
+      containers:
+        - name: llm-api
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          command:
+            - "vllm"
+            - "serve"
+            - "{{ .Values.model.path }}"     # 从指定目录加载
+            - "--host"
+            - "0.0.0.0"
+            - "--port"
+            - "8000"
+            - "--tensor-parallel-size"
+            - "1"                            # 单卡 H100
+            - "--gpu-memory-utilization"
+            - "0.95"                         # PDF 推荐 TP=1 时要提高
+            - "--max-num-batched-tokens"
+            - "1024"                         # 防止 TP=1 OOM（来自你 PDF）
+            - "--max-model-len"
+            - "10240"
+            - "--max-num-seqs"
+            - "128"
+            - "--async-scheduling"           # 已有的参数
+            - "--dtype"
+            - "bfloat16"
+          ports:
+            - containerPort: 8000
+          resources:
+{{ toYaml .Values.resources | indent 12 }}
+          # env:
+            # - name: HF_TOKEN
+            #   valueFrom:
+            #     secretKeyRef:
+            #       name: {{ .Release.Name }}-secret
+            #       key: HF_TOKEN
+          volumeMounts:
+            - name: model-cache
+              mountPath: /models
+            # - name: config-volume
+            #   mountPath: /opt
+      volumes:
+        - name: model-cache
+          persistentVolumeClaim:
+            claimName: {{ .Release.Name }}-pvc
+        # - name: config-volume
+        #   configMap:
+        #     name: {{ .Release.Name }}-config
+      nodeSelector:
+{{ toYaml .Values.nodeSelector | indent 8 }}
+---
+# apiVersion: apps/v1
+# kind: Deployment
+# metadata:
+#   name: {{ .Release.Name }}-embedding
+#   labels:
+#     app: {{ .Chart.Name }}-embedding
+# spec:
+#   replicas: {{ .Values.embedding.replicaCount }}
+#   selector:
+#     matchLabels:
+#       app: {{ .Chart.Name }}-embedding
+#   template:
+#     metadata:
+#       labels:
+#         app: {{ .Chart.Name }}-embedding
+#     spec:
+#       containers:
+#         - name: llm-embedding-api
+#           image: "{{ .Values.embedding.image.repository }}:{{ .Values.embedding.image.tag }}"
+#           command:
+#             - "vllm"
+#             - "serve"
+#             - "{{ .Values.embedding.model.path }}"
+#             - "--host"
+#             - "0.0.0.0"
+#             - "--port"
+#             - "8001"
+#             - "--tensor-parallel-size"
+#             - "1"
+#             - "--max-model-len"
+#             - "32768"
+#             - "--task"
+#             - "embed"
+#             - "--dtype"
+#             - "float16"
+#             - "--trust-remote-code"
+#             - "--enforce_eager"
+#           ports:
+#             - containerPort: 8001
+#           resources:
+# {{ toYaml .Values.embedding.resources | indent 12 }}
+#           volumeMounts:
+#             - name: model-cache
+#               mountPath: /models
+#       volumes:
+#         - name: model-cache
+#           persistentVolumeClaim:
+#             claimName: {{ .Release.Name }}-pvc
+#       nodeSelector:
+# {{ toYaml .Values.embedding.nodeSelector | indent 8 }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-embedding
+  labels:
+    app: {{ .Chart.Name }}-embedding
+spec:
+  replicas: {{ .Values.embedding.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Chart.Name }}-embedding
+  template:
+    metadata:
+      labels:
+        app: {{ .Chart.Name }}-embedding
+    spec:
+      containers:
+        - name: llm-embedding-api
+          image: "{{ .Values.embedding.image.repository }}:{{ .Values.embedding.image.tag }}"
+          command: ["/bin/sh"]
+          args:
+            - "-c"
+            - |
+              apt-get update && \
+              apt-get -y install python3.12 && \
+              apt -y install python3-pip && \
+              pip install -r /opt/requirements.txt --break-system-packages && \
+              uvicorn app:app --host 0.0.0.0 --port 8001
+          env:
+            - name: MODEL_PATH
+              value: {{ .Values.embedding.model.path }}
+          ports:
+            - containerPort: 8001
+          resources:
+{{ toYaml .Values.embedding.resources | indent 12 }}
+          volumeMounts:
+            - name: model-cache
+              mountPath: /models
+            - name: config-volume
+              mountPath: /opt
+      volumes:
+        - name: model-cache
+          persistentVolumeClaim:
+            claimName: {{ .Release.Name }}-pvc
+        - name: config-volume
+          configMap:
+            name: {{ .Release.Name }}-config
+      nodeSelector:
+{{ toYaml .Values.embedding.nodeSelector | indent 8 }}

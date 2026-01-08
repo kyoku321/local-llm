@@ -1,0 +1,67 @@
+{{- range $name, $service := .Values.services }}
+{{- if ne $service.enabled false }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $.Release.Name }}-{{ $name }}
+  labels:
+    app: {{ $.Chart.Name }}
+    service: {{ $name }}
+spec:
+  replicas: {{ $service.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ $.Chart.Name }}
+      service: {{ $name }}
+  template:
+    metadata:
+      labels:
+        app: {{ $.Chart.Name }}
+        service: {{ $name }}
+    spec:
+      containers:
+        - name: vllm-api
+          {{- $image := $service.image | default dict }}
+          image: "{{ $image.repository | default $.Values.common.image.repository }}:{{ $image.tag | default $.Values.common.image.tag }}"
+          imagePullPolicy: {{ $image.pullPolicy | default $.Values.common.image.pullPolicy }}
+          command:
+            - "vllm"
+            - "serve"
+            - "{{ $service.model.path }}"
+            - "--host"
+            - "0.0.0.0"
+            - "--port"
+            - "{{ $service.service.port }}"
+            {{- if $service.extraArgs }}
+            {{- toYaml $service.extraArgs | nindent 12 }}
+            {{- end }}
+          ports:
+            - containerPort: {{ $service.service.port }}
+          resources:
+            {{- toYaml $service.resources | nindent 12 }}
+          env:
+            - name: HF_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $.Release.Name }}-secret
+                  key: HF_TOKEN
+          volumeMounts:
+            - name: model-cache
+              mountPath: {{ $.Values.common.persistence.mountPath }}
+      volumes:
+        - name: model-cache
+          persistentVolumeClaim:
+            claimName: {{ $.Release.Name }}-pvc
+      nodeSelector:
+        {{- toYaml $service.nodeSelector | nindent 8 }}
+      {{- if or $service.tolerations $.Values.common.tolerations }}
+      tolerations:
+        {{- if $service.tolerations }}
+        {{- toYaml $service.tolerations | nindent 8 }}
+        {{- else }}
+        {{- toYaml $.Values.common.tolerations | nindent 8 }}
+        {{- end }}
+      {{- end }}
+---
+{{- end }}
+{{- end }}

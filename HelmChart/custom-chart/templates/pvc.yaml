@@ -1,0 +1,15 @@
+{{- if .Values.common.persistence.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Release.Name }}-pvc
+  annotations:
+    "helm.sh/resource-policy": keep
+spec:
+  accessModes:
+{{ toYaml .Values.common.persistence.accessModes | indent 4 }}
+  resources:
+    requests:
+      storage: {{ .Values.common.persistence.size }}
+  storageClassName: {{ .Values.common.persistence.storageClass }}
+{{- end }}

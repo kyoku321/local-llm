@@ -1,0 +1,59 @@
+{{- if .Values.ingress.enabled -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ .Release.Name }}
+  labels:
+    app: {{ .Chart.Name }}
+  {{- with .Values.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if .Values.ingress.className }}
+  ingressClassName: {{ .Values.ingress.className }}
+  {{- end }}
+  {{- if .Values.ingress.tls }}
+  tls:
+  {{- range .Values.ingress.tls }}
+    - hosts:
+      {{- range .hosts }}
+        - {{ . | quote }}
+      {{- end }}
+      secretName: {{ .secretName }}
+  {{- end }}
+  {{- end }}
+  {{- if .Values.ingress.hosts }}
+  rules:
+    {{- range .Values.ingress.hosts }}
+    {{- $hasEnabledPath := false }}
+    {{- range .paths }}
+      {{- $service := index $.Values.services .serviceName }}
+      {{- if $service }}
+        {{- if ne $service.enabled false }}
+          {{- $hasEnabledPath = true }}
+        {{- end }}
+      {{- end }}
+    {{- end }}
+    {{- if $hasEnabledPath }}
+    - host: {{ .host | quote }}
+      http:
+        paths:
+          {{- range .paths }}
+          {{- $service := index $.Values.services .serviceName }}
+          {{- if $service }}
+          {{- if ne $service.enabled false }}
+          - path: {{ .path }}
+            pathType: {{ .pathType }}
+            backend:
+              service:
+                name: {{ $.Release.Name }}-{{ .serviceName }}
+                port:
+                  number: {{ $service.service.port }}
+          {{- end }}
+          {{- end }}
+          {{- end }}
+    {{- end }}
+    {{- end }}
+  {{- end }}
+{{- end }}
