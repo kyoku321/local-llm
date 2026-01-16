@@ -136,11 +136,11 @@ services:
       - "--served-model-name"
       - "glm-4.7-fp8"
       - "--trust-remote-code"
-    tolerations:
-      - key: "dedicated"
-        operator: "Equal"
-        value: "genai"
-        effect: "NoSchedule"
+    # tolerations:
+    #   - key: "dedicated"
+    #     operator: "Equal"
+    #     value: "genai"
+    #     effect: "NoSchedule"
 
 # Ingress Configuration
 ingress:
