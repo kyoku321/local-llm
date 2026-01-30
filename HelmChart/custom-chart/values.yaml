@@ -32,8 +32,15 @@ services:
     resources:
       limits:
         nvidia.com/gpu: 1
-    nodeSelector:
-      memorysize: "80GB"
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+          - matchExpressions:
+            - key: memorysize
+              operator: In
+              values:
+              - 80GB
     service:
       port: 8000
     # Additional arguments for vLLM serve command
@@ -62,8 +69,15 @@ services:
     resources:
       limits:
         nvidia.com/gpu: 1
-    nodeSelector:
-      memorysize: "32GB"
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+          - matchExpressions:
+            - key: memorysize
+              operator: In
+              values:
+              - 32GB
     service:
       port: 8001
     extraArgs:
@@ -112,18 +126,33 @@ services:
     image:
       repository: "vllm/vllm-openai"
       tag: "nightly"
+      pullPolicy: Always
     replicaCount: 1
+    bootstrap: "pip install -U transformers"
     model:
-      name: "zai-org/GLM-4.7-FP8"
-      path: "/models/GLM-4.7-FP8"
+      name: "zai-org/GLM-4.7-Flash"
+      path: "/models/GLM-4.7-Flash"
     resources:
       limits:
-        nvidia.com/gpu: 4
+        nvidia.com/gpu: 1
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+          - matchExpressions:
+            - key: memorysize
+              operator: In
+              values:
+              - 80GB
+            # - key: kubernetes.io/hostname
+            #   operator: In
+            #   values:
+            #   - "node1b-1"
     service:
       port: 8003
     extraArgs:
       - "--tensor-parallel-size"
-      - "4"
+      - "1"
       - "--speculative-config.method"
       - "mtp"
       - "--speculative-config.num_speculative_tokens"
@@ -134,17 +163,21 @@ services:
       - "glm45"
       - "--enable-auto-tool-choice"
       - "--served-model-name"
-      - "glm-4.7-fp8"
+      - "glm-4.7-flash"
       - "--trust-remote-code"
-    # tolerations:
-    #   - key: "dedicated"
-    #     operator: "Equal"
-    #     value: "genai"
-    #     effect: "NoSchedule"
+      - "--dtype"
+      - "bfloat16"
+      - "--max-model-len"
+      - "131072"
+      - "--gpu-memory-utilization"
+      - "0.93"
+      - "--max-num-seqs"
+      - "32"
+         
 
   # Kimi-K2.5 Model Service
   kimi:
-    enabled: true
+    enabled: false
     image:
       repository: "vllm/vllm-openai"
       tag: "nightly"
@@ -155,16 +188,29 @@ services:
       path: "/models/Kimi-K2.5"
     resources:
       limits:
-        nvidia.com/gpu: 4
+        nvidia.com/gpu: 8
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+          - matchExpressions:
+            - key: memorysize
+              operator: In
+              values:
+              - 141GB
+            # - key: kubernetes.io/hostname
+            #   operator: In
+            #   values:
+            #   - "node1b-1"
     service:
       port: 8004
     extraArgs:
       - "--tensor-parallel-size"
-      - "4"
+      - "8"
       - "--gpu-memory-utilization"
       - "0.95"
       - "--max-model-len"
-      - "131072"
+      - "4096"
       - "--trust-remote-code"
       - "--enable-auto-tool-choice"
       - "--tool-call-parser"
@@ -173,6 +219,9 @@ services:
       - "kimi_k2"
       - "--served-model-name"
       - "moonshotai/Kimi-K2.5"
+      - "--kv-cache-dtype"
+      - "fp8" 
+
 
 
 # Ingress Configuration

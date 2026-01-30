@@ -25,16 +25,21 @@ spec:
           image: "{{ $image.repository | default $.Values.common.image.repository }}:{{ $image.tag | default $.Values.common.image.tag }}"
           imagePullPolicy: {{ $image.pullPolicy | default $.Values.common.image.pullPolicy }}
           command:
-            - "vllm"
-            - "serve"
-            - "{{ $service.model.path }}"
-            - "--host"
-            - "0.0.0.0"
-            - "--port"
-            - "{{ $service.service.port }}"
-            {{- if $service.extraArgs }}
-            {{- toYaml $service.extraArgs | nindent 12 }}
-            {{- end }}
+            - "/bin/sh"
+            - "-c"
+            - |
+              {{- if $service.bootstrap }}
+              echo "Running bootstrap command: {{ $service.bootstrap }}"
+              {{ $service.bootstrap }}
+              {{- end }}
+              vllm serve {{ $service.model.path }} \
+                --host 0.0.0.0 \
+                --port {{ $service.service.port }} \
+                {{- if $service.extraArgs }}
+                {{- range $service.extraArgs }}
+                {{ . }} \
+                {{- end }}
+                {{- end }}
           ports:
             - containerPort: {{ $service.service.port }}
           resources:
@@ -54,6 +59,14 @@ spec:
             claimName: {{ $.Release.Name }}-pvc
       nodeSelector:
         {{- toYaml $service.nodeSelector | nindent 8 }}
+      {{- if or $service.affinity $.Values.common.affinity }}
+      affinity:
+        {{- if $service.affinity }}
+        {{- toYaml $service.affinity | nindent 8 }}
+        {{- else }}
+        {{- toYaml $.Values.common.affinity | nindent 8 }}
+        {{- end }}
+      {{- end }}
       {{- if or $service.tolerations $.Values.common.tolerations }}
       tolerations:
         {{- if $service.tolerations }}
