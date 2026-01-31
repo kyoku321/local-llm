@@ -2,7 +2,11 @@ import json
 import sys
 import time
 import requests
+import urllib3
 from pathlib import Path
+
+# 禁用证书警告
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # 定义 API 配置
 URL = "https://asr.aggpf.gpu-k8s.cloudcore-tu.net/v1/audio/transcriptions"
@@ -41,10 +45,11 @@ def test_asr_with_url(audio_url, language=None):
         for attempt in range(max_retries):
             try:
                 resp = requests.post(
-                    URL, 
-                    files=files, 
-                    data=data, 
-                    timeout=300
+                    URL,
+                    files=files,
+                    data=data,
+                    timeout=300,
+                    verify=False
                 )
                 resp.raise_for_status()
                 result = resp.json()
@@ -98,7 +103,7 @@ def test_asr_with_openai_sdk(audio_url):
     max_retries = 3
     for attempt in range(max_retries):
         try:
-            resp = requests.post(chat_url, json=payload, timeout=300)
+            resp = requests.post(chat_url, json=payload, timeout=300, verify=False)
             resp.raise_for_status()
             data = resp.json()
             content = data["choices"][0]["message"]["content"]
