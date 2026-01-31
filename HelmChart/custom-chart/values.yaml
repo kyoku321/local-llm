@@ -263,12 +263,21 @@ services:
 
   # Qwen3-TTS Model Service
   tts:
-    enabled: true
+    enabled: false
     image:
-      repository: "vllm/vllm-omni"
-      tag: "v0.14.0rc1"
+      repository: "vllm/vllm-openai"
+      tag: "v0.14.0"
       pullPolicy: Always
-    bootstrap: "pip install -U flash-attn --no-build-isolation"
+    bootstrap: |
+      echo "Cloning vllm-omni repository..."
+      git clone --depth 1 https://github.com/vllm-project/vllm-omni.git /tmp/vllm-omni
+      echo "Installing vllm-omni from source..."
+      pip install -e /tmp/vllm-omni
+      echo "Installing qwen-tts..."
+      pip install qwen-tts
+      echo "Installing flash-attn..."
+      pip install -U flash-attn --no-build-isolation
+      echo "Bootstrap complete!"
     replicaCount: 1
     model:
       name: "Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice"
