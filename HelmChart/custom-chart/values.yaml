@@ -108,7 +108,7 @@ services:
       port: 8002
     extraArgs:
       - "--tensor-parallel-size"
-      - "4"
+      - "2"
       - "--gpu-memory-utilization"
       - "0.95"
       - "--max-model-len"
@@ -220,9 +220,46 @@ services:
       - "--served-model-name"
       - "moonshotai/Kimi-K2.5"
       - "--kv-cache-dtype"
-      - "fp8" 
+      - "fp8"
 
-
+  # Qwen3-ASR Model Service
+  asr:
+    enabled: true
+    image:
+      repository: "vllm/vllm-openai"
+      tag: "nightly"
+      pullPolicy: Always
+    bootstrap: "pip install -U flash-attn --no-build-isolation"
+    replicaCount: 1
+    model:
+      name: "Qwen/Qwen3-ASR-1.7B"
+      path: "/models/Qwen3-ASR-1.7B"
+    resources:
+      limits:
+        nvidia.com/gpu: 1
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+          - matchExpressions:
+            - key: memorysize
+              operator: In
+              values:
+              - 16GB
+    service:
+      port: 8005
+    extraArgs:
+      - "--tensor-parallel-size"
+      - "1"
+      - "--gpu-memory-utilization"
+      - "0.85"
+      - "--max-model-len"
+      - "4096"
+      - "--max-num-seqs"
+      - "128"
+      - "--trust-remote-code"
+      - "--dtype"
+      - "float16"
 
 # Ingress Configuration
 ingress:
@@ -258,6 +295,11 @@ ingress:
         - path: /
           pathType: Prefix
           serviceName: kimi
+    - host: asr.aggpf.gpu-k8s.cloudcore-tu.net
+      paths:
+        - path: /
+          pathType: Prefix
+          serviceName: asr
 
   tls:
     - hosts:
@@ -266,4 +308,5 @@ ingress:
         - qwen.aggpf.gpu-k8s.cloudcore-tu.net
         - glm.aggpf.gpu-k8s.cloudcore-tu.net
         - kimi.aggpf.gpu-k8s.cloudcore-tu.net
+        - asr.aggpf.gpu-k8s.cloudcore-tu.net
       secretName: vllm-tls-secret
