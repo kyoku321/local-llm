@@ -94,31 +94,41 @@ services:
       - "--dtype"
       - "float16"
 
-  # Qwen3-235B Model Service
+  # Qwen3-Coder-Next Model Service
   qwen:
-    enabled: false
+    enabled: true
+    image:
+      repository: "vllm/vllm-openai"
+      tag: "v0.15.0"
+      pullPolicy: Always
     replicaCount: 1
     model:
-      name: "Qwen/Qwen3-235B-A22B-Instruct-2507-FP8"
-      path: "/models/Qwen3-235B-A22B-Instruct-2507-FP8"
+      name: "Qwen/Qwen3-Coder-Next"
+      path: "/models/Qwen3-Coder-Next"
     resources:
       limits:
         nvidia.com/gpu: 4
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+          - matchExpressions:
+            - key: memorysize
+              operator: In
+              values:
+              - 80GB
     service:
       port: 8002
     extraArgs:
       - "--tensor-parallel-size"
-      - "2"
+      - "4"
       - "--gpu-memory-utilization"
       - "0.95"
       - "--max-model-len"
-      - "32768"
-      - "--trust-remote-code"
-    tolerations:
-      - key: "dedicated"
-        operator: "Equal"
-        value: "genai"
-        effect: "NoSchedule"
+      - "16384"
+      - "--tool-call-parser"
+      - "qwen3_coder"
+      - "--enable-auto-tool-choice"
 
   # GLM-4.7-FP8 Model Service
   glm:
@@ -224,7 +234,7 @@ services:
 
   # Qwen3-ASR Model Service
   asr:
-    enabled: true
+    enabled: false
     image:
       repository: "vllm/vllm-openai"
       tag: "nightly"
