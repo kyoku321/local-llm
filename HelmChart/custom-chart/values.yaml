@@ -10,7 +10,7 @@ common:
     storageClass: "basic"
     accessModes:
       - ReadWriteMany
-    size: 1600Gi
+    size: 3000Gi
     mountPath: /models
 
   service:
@@ -183,20 +183,21 @@ services:
       - "32"
          
 
-  # Kimi-K2.5 Model Service
-  kimi:
-    enabled: false
+  # Step-3.5-Flash Model Service
+  step:
+    enabled: true
     image:
       repository: "vllm/vllm-openai"
       tag: "nightly"
       pullPolicy: Always
     replicaCount: 1
+    # env vars removed - using BF16 instead of FP8 for better B200 compatibility
     model:
-      name: "moonshotai/Kimi-K2.5"
-      path: "/models/Kimi-K2.5"
+      name: "stepfun-ai/Step-3.5-Flash"
+      path: "/models/Step-3.5-Flash"
     resources:
       limits:
-        nvidia.com/gpu: 8
+        nvidia.com/gpu: 4
     affinity:
       nodeAffinity:
         requiredDuringSchedulingIgnoredDuringExecution:
@@ -205,30 +206,29 @@ services:
             - key: memorysize
               operator: In
               values:
-              - 141GB
-            # - key: kubernetes.io/hostname
-            #   operator: In
-            #   values:
-            #   - "node1b-1"
+              - 192GB
+            - key: kubernetes.io/hostname
+              operator: In
+              values:
+              - "node1b-1"
     service:
       port: 8004
     extraArgs:
-      - "--tensor-parallel-size"
-      - "8"
       - "--gpu-memory-utilization"
       - "0.95"
-      - "--max-model-len"
-      - "4096"
-      - "--trust-remote-code"
+      - "--served-model-name"
+      - "step3p5-flash"
+      - "--tensor-parallel-size"
+      - "4"
+      - "--enable-expert-parallel"
+      - "--reasoning-parser"
+      - "step3p5"
       - "--enable-auto-tool-choice"
       - "--tool-call-parser"
-      - "kimi_k2"
-      - "--reasoning-parser"
-      - "kimi_k2"
-      - "--served-model-name"
-      - "moonshotai/Kimi-K2.5"
-      - "--kv-cache-dtype"
-      - "fp8"
+      - "step3p5"
+      - "--trust-remote-code"
+      - "--dtype"
+      - "bfloat16"
 
   # Qwen3-ASR Model Service
   asr:
@@ -347,11 +347,11 @@ ingress:
         - path: /
           pathType: Prefix
           serviceName: glm
-    - host: kimi.aggpf.gpu-k8s.cloudcore-tu.net
+    - host: step.aggpf.gpu-k8s.cloudcore-tu.net
       paths:
         - path: /
           pathType: Prefix
-          serviceName: kimi
+          serviceName: step
     - host: asr.aggpf.gpu-k8s.cloudcore-tu.net
       paths:
         - path: /
@@ -369,7 +369,7 @@ ingress:
         - embedding.aggpf.gpu-k8s.cloudcore-tu.net
         - qwen.aggpf.gpu-k8s.cloudcore-tu.net
         - glm.aggpf.gpu-k8s.cloudcore-tu.net
-        - kimi.aggpf.gpu-k8s.cloudcore-tu.net
+        - step.aggpf.gpu-k8s.cloudcore-tu.net
         - asr.aggpf.gpu-k8s.cloudcore-tu.net
         - tts.aggpf.gpu-k8s.cloudcore-tu.net
       secretName: vllm-tls-secret
