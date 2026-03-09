@@ -128,17 +128,17 @@ services:
       - "qwen3_coder"
       - "--enable-auto-tool-choice"
 
-  # GLM-4.7-FP8 Model Service
+  # GLM-4.7-Flash Model Service
   glm:
-    enabled: true
+    enabled: false
     image:
       repository: "vllm/vllm-openai"
       tag: "nightly"
       pullPolicy: Always
     replicaCount: 1
-    bootstrap: "pip install -U transformers"
+    # bootstrap: "pip install -U transformers"
     model:
-      name: "zai-org/GLM-4.7-Flash"
+      # name: "zai-org/GLM-4.7-Flash"
       path: "/models/GLM-4.7-Flash"
     resources:
       limits:
@@ -181,11 +181,10 @@ services:
       - "0.93"
       - "--max-num-seqs"
       - "32"
-         
 
   # Step-3.5-Flash Model Service
   step:
-    enabled: true
+    enabled: false
     image:
       repository: "vllm/vllm-openai"
       tag: "nightly"
@@ -317,6 +316,135 @@ services:
       - "--dtype"
       - "float16"
 
+  # GLM-5 Model Service
+  glm5:
+    enabled: false
+    image:
+      repository: "vllm/vllm-openai"
+      tag: "nightly"
+      pullPolicy: Always
+    replicaCount: 1
+    bootstrap: "pip install https://github.com/huggingface/transformers/archive/refs/heads/main.zip"
+    model:
+      name: "zai-org/GLM-5-FP8"
+      path: "/models/GLM-5"
+    resources:
+      limits:
+        nvidia.com/gpu: 8
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+          - matchExpressions:
+            - key: memorysize
+              operator: In
+              values:
+              - 192GB
+            - key: kubernetes.io/hostname
+              operator: In
+              values:
+              - "node1b-1"
+    service:
+      port: 8007
+    extraArgs:
+      - "--tensor-parallel-size"
+      - "8"
+      - "--gpu-memory-utilization"
+      - "0.85"
+      - "--speculative-config.method"
+      - "mtp"
+      - "--speculative-config.num_speculative_tokens"
+      - "1"
+      - "--tool-call-parser"
+      - "glm47"
+      - "--reasoning-parser"
+      - "glm45"
+      - "--enable-auto-tool-choice"
+      - "--served-model-name"
+      - "glm-5-fp8"
+      - "--trust-remote-code"         
+
+  # MiniMax-M2.5 Model Service
+  minimax:
+    enabled: false
+    image:
+      repository: "vllm/vllm-openai"
+      tag: "nightly"
+      pullPolicy: Always
+    replicaCount: 1
+    bootstrap: "pip install -U transformers"
+    model:
+      name: "MiniMaxAI/MiniMax-M2.5"
+      path: "/models/MiniMax-M2.5"
+    resources:
+      limits:
+        nvidia.com/gpu: 4
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+          - matchExpressions:
+            - key: memorysize
+              operator: In
+              values:
+              - 192GB
+            - key: kubernetes.io/hostname
+              operator: In
+              values:
+              - "node1b-1"
+    service:
+      port: 8008
+    extraArgs:
+      - "--tensor-parallel-size"
+      - "4"
+      - "--gpu-memory-utilization"
+      - "0.85"
+      - "--tool-call-parser"
+      - "minimax_m2"
+      - "--reasoning-parser"
+      - "minimax_m2_append_think"
+      - "--enable-auto-tool-choice"
+      - "--trust-remote-code"         
+
+  # Qwen3.5-27B Model Service
+  qwen35b:
+    enabled: true
+    image:
+      repository: "vllm/vllm-openai"
+      tag: "nightly-755356b3d18d8079b1b115dfd2111dc1accdb764"
+      pullPolicy: Always
+    replicaCount: 1
+    model:
+      name: "Qwen/Qwen3.5-35B-A3B"
+      path: "/models/Qwen3.5-35B-A3B"
+    resources:
+      limits:
+        nvidia.com/gpu: 2
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+          - matchExpressions:
+            - key: memorysize
+              operator: In
+              values:
+              - 80GB
+    service:
+      port: 8009
+    extraArgs:
+      - "--tensor-parallel-size"
+      - "2"
+      - "--gpu-memory-utilization"
+      - "0.90"
+      - "--tool-call-parser"
+      - "qwen3_coder"
+      - "--enable-auto-tool-choice"
+      - "--max-model-len"
+      - "262144"
+      - "--reasoning-parser"
+      - "qwen3"
+      # - "--enforce-eager"
+
 
 # Ingress Configuration
 ingress:
@@ -337,7 +465,7 @@ ingress:
         - path: /
           pathType: Prefix
           serviceName: embedding
-    - host: qwen.aggpf.gpu-k8s.cloudcore-tu.net
+    - host: aggpf-qwen3coder-next.gpu-k8s.cloudcore-tu.net
       paths:
         - path: /
           pathType: Prefix
@@ -362,14 +490,32 @@ ingress:
         - path: /
           pathType: Prefix
           serviceName: tts
+    - host: glm5.aggpf.gpu-k8s.cloudcore-tu.net
+      paths:
+        - path: /
+          pathType: Prefix
+          serviceName: glm5
+    - host: minimax.aggpf.gpu-k8s.cloudcore-tu.net
+      paths:
+        - path: /
+          pathType: Prefix
+          serviceName: minimax
+    - host: aggpf-qwen35-35b.gpu-k8s.cloudcore-tu.net
+      paths:
+        - path: /
+          pathType: Prefix
+          serviceName: qwen35b
 
   tls:
     - hosts:
         - llm.aggpf.gpu-k8s.cloudcore-tu.net
         - embedding.aggpf.gpu-k8s.cloudcore-tu.net
-        - qwen.aggpf.gpu-k8s.cloudcore-tu.net
+        - aggpf-qwen3coder-next.gpu-k8s.cloudcore-tu.net
         - glm.aggpf.gpu-k8s.cloudcore-tu.net
         - step.aggpf.gpu-k8s.cloudcore-tu.net
         - asr.aggpf.gpu-k8s.cloudcore-tu.net
         - tts.aggpf.gpu-k8s.cloudcore-tu.net
+        - glm5.aggpf.gpu-k8s.cloudcore-tu.net
+        - minimax.aggpf.gpu-k8s.cloudcore-tu.net
+        - aggpf-qwen35-35b.gpu-k8s.cloudcore-tu.net
       secretName: vllm-tls-secret
