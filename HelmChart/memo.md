@@ -62,10 +62,16 @@ hf download zai-org/GLM-5 --local-dir /models/GLM-5
 
 hf download stepfun-ai/Step-3.5-Flash --local-dir /models/Step-3.5-Flash
 
-hf download MiniMaxAI/MiniMax-M2.5 --local-dir /models/MiniMax-M2.5
+hf download MiniMaxAI/MiniMax-M2.7 --local-dir /models/MiniMax-M2.7
+
+
+hf download Qwen/Qwen3.6-35B-A3B --local-dir /models/Qwen3.6-35B-A3B
+hf download Qwen/Qwen3.6-35B-A3B-FP8 --local-dir /models/Qwen3.6-35B-A3B-FP8
 
 hf download Qwen/Qwen3.5-27B --local-dir /models/Qwen3.5-27B
-hf download Qwen/Qwen3.5-35B-A3B --local-dir /models/Qwen3.5-35B-A3B
+
+
+hf download google/gemma-4-E4B-it --local-dir /models/gemma-4-E4B-it
 
 curl -X POST http://localhost:8000/v1/chat/completions -H "Content-Type: application/json" -d '{"model": "/models/gpt-oss-20b","messages": [{"role": "system","content": "帮把下面日文翻译为中文。"},{"role": "user","content": "，ベライゾンは、競争激化と顧客獲得の低迷を受け、大規模な人員削減と約200店舗のフランチャイズ化を発表しました。新CEOは、より効率的でアグレッシブな運営モデルへの転換を掲げ、顧客ロイヤリティとリテンションの向上を目指します。このリストラは、同社史上最大規模のものです。"}],"max_tokens": 2048,"temperature": 0.7}'
 
@@ -83,40 +89,7 @@ curl -X GET \
 
 curl -X GET \
   http://vllm.aggpf.gpu-k8s.cloudcore-tu.net/health
-
-
- (APIServer pid=1) INFO 11-17 23:22:51 [launcher.py:44] Route: /openapi.json, Methods: GET, HEAD                                                                           │
-│ (APIServer pid=1) INFO 11-17 23:22:51 [launcher.py:44] Route: /docs, Methods: GET, HEAD                                                                                   │
-│ (APIServer pid=1) INFO 11-17 23:22:51 [launcher.py:44] Route: /docs/oauth2-redirect, Methods: GET, HEAD                                                                   │
- (APIServer pid=1) INFO 11-16 23:20:39 [launcher.py:44] Route: /redoc, Methods: GET                                                         │
-│ (APIServer pid=1) INFO 11-16 23:20:39 [launcher.py:44] Route: /health, Methods: GET                                                              │
-│ (APIServer pid=1) INFO 11-16 23:20:39 [launcher.py:44] Route: /load, Methods: GET                                                                │
-│ (APIServer pid=1) INFO 11-16 23:20:39 [launcher.py:44] Route: /ping, Methods: POST                                                               │
-│ (APIServer pid=1) INFO 11-16 23:20:39 [launcher.py:44] Route: /ping, Methods: GET                                                                │
-│ (APIServer pid=1) INFO 11-16 23:20:39 [launcher.py:44] Route: /tokenize, Methods: POST                                                           │
-│ (APIServer pid=1) INFO 11-16 23:20:39 [launcher.py:44] Route: /detokenize, Methods: POST                                                         │
-│ (APIServer pid=1) INFO 11-16 23:20:39 [launcher.py:44] Route: /v1/models, Methods: GET                                                           │
-│ (APIServer pid=1) INFO 11-16 23:20:39 [launcher.py:44] Route: /version, Methods: GET                                                             │
-│ (APIServer pid=1) INFO 11-16 23:20:39 [launcher.py:44] Route: /v1/responses, Methods: POST                                                       │
-│ (APIServer pid=1) INFO 11-16 23:20:39 [launcher.py:44] Route: /v1/responses/{response_id}, Methods: GET                                          │
-│ (APIServer pid=1) INFO 11-16 23:20:39 [launcher.py:44] Route: /v1/responses/{response_id}/cancel, Methods: POST                                  │
-│ (APIServer pid=1) INFO 11-16 23:20:39 [launcher.py:44] Route: /v1/chat/completions, Methods: POST                                                │
-│ (APIServer pid=1) INFO 11-16 23:20:39 [launcher.py:44] Route: /v1/completions, Methods: POST                                                     │
-│ (APIServer pid=1) INFO 11-16 23:20:39 [launcher.py:44] Route: /v1/embeddings, Methods: POST                                                      │
-│ (APIServer pid=1) INFO 11-16 23:20:39 [launcher.py:44] Route: /pooling, Methods: POST                                                            │
-│ (APIServer pid=1) INFO 11-16 23:20:39 [launcher.py:44] Route: /classify, Methods: POST                                                           │
-│ (APIServer pid=1) INFO 11-16 23:20:39 [launcher.py:44] Route: /score, Methods: POST                                                              │
-│ (APIServer pid=1) INFO 11-16 23:20:39 [launcher.py:44] Route: /v1/score, Methods: POST                                                           │
-│ (APIServer pid=1) INFO 11-16 23:20:39 [launcher.py:44] Route: /v1/audio/transcriptions, Methods: POST                                            │
-│ (APIServer pid=1) INFO 11-16 23:20:39 [launcher.py:44] Route: /v1/audio/translations, Methods: POST                                              │
-│ (APIServer pid=1) INFO 11-16 23:20:39 [launcher.py:44] Route: /rerank, Methods: POST                                                             │
-│ (APIServer pid=1) INFO 11-16 23:20:39 [launcher.py:44] Route: /v1/rerank, Methods: POST                                                          │
-│ (APIServer pid=1) INFO 11-16 23:20:39 [launcher.py:44] Route: /v2/rerank, Methods: POST                                                          │
-│ (APIServer pid=1) INFO 11-16 23:20:39 [launcher.py:44] Route: /scale_elastic_ep, Methods: POST                                                   │
-│ (APIServer pid=1) INFO 11-16 23:20:39 [launcher.py:44] Route: /is_scaling_elastic_ep, Methods: POST                                              │
-│ (APIServer pid=1) INFO 11-16 23:20:39 [launcher.py:44] Route: /invocations, Methods: POST                                                        │
-│ (APIServer pid=1) INFO 11-16 23:20:39 [launcher.py:44] Route: /metrics, Methods: GET     
-
+ 
 
 
 

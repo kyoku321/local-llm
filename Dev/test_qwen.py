@@ -5,7 +5,7 @@ from openai import OpenAI
 from pathlib import Path
 
 # 定义 API 配置
-URL = "https://qwen35b.aggpf.gpu-k8s.cloudcore-tu.net/v1"
+URL = "https://aggpf-qwen35-35b.gpu-k8s.cloudcore-tu.net/v1"
 MODEL_NAME = "/models/Qwen3.5-35B-A3B"
 
 client = OpenAI(
@@ -33,22 +33,30 @@ def get_article_text(link):
         print(f"Error fetching article text: {e}")
         return None
 
-def process_article_with_qwen(title, link):
+def process_article_with_qwen(title, link, enable_thinking=False):
     """
     使用 Qwen 模型直接打印返回内容，不进行结构化解析。
+    
+    Args:
+        title: 文章标题
+        link: 文章链接
+        enable_thinking: 是否启用 thinking 参数（默认为 False）
+    
+    Returns:
+        tuple: (模型返回内容，请求耗时)
     """
     article_text = get_article_text(link)
     if not article_text:
-        return "記事のコンテンツを取得できませんでした。"
+        return "記事のコンテンツを取得できませんでした。", 0
 
     prompt = f"""
     あなたは優秀な編集者です。以下のタスクを実行してください。
 
     1. 記事のタイトルを自然な日本語に翻訳してください。元のタイトルが日本語の場合は、そのままで構いません。
-    2. 記事の本文を日本語で200字以内に要約してください。
+    2. 記事の本文を日本語で 200 字以内に要約してください。
     3. 記事の内容に最も関連性の高いキーワードタグを三つ以内に抽出してください。
 
-    記事タイトル: "{title}"
+    記事タイトル："{title}"
     記事本文:
     ---
     {article_text[:5000]}
@@ -61,32 +69,83 @@ def process_article_with_qwen(title, link):
     ]
 
     try:
+        start_time = time.time()
+        
+        # 构建 extra_body 参数
+        extra_body = {
+            "top_k": 20,
+            "chat_template_kwargs": {
+                "enable_thinking": enable_thinking
+            }
+        }
+        
         chat_response = client.chat.completions.create(
             model=MODEL_NAME,
             messages=messages,
-            max_tokens=2048,
+            max_tokens=32768,
             temperature=0.7,
-            top_p=0.95,
+            top_p=0.8,
             presence_penalty=1.5,
-            extra_body={
-                "top_k": 20,
-            }
+            extra_body=extra_body
         )
-        return chat_response.choices[0].message.content
+        
+        total_time = time.time() - start_time
+        return chat_response.choices[0].message.content, total_time
     except Exception as e:
-        return f"Request Error: {str(e)}"
+        return f"Request Error: {str(e)}", 0
 
 if __name__ == "__main__":
     test_title = "特朗普赢得大选"
     test_link = "https://www.ibm.com/cn-zh/think/topics/agent2agent-protocol"
     
-    print(f"--- 正在使用 Qwen3-235B 测试原始输出 ---")
-    print(f"原始标题: {test_title}")
+    print(f"=" * 60)
+    print(f"Testing Qwen3.5-35B-A3B - Thinking Parameter Impact")
+    print(f"=" * 60)
+    print(f"Test Article: {test_title}")
+    print(f"Test Link: {test_link}")
+    print()
     
     # 抑制 SSL 警告
     import urllib3
     urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-
-    content = process_article_with_qwen(test_title, test_link)
     
-    print(f"\n[模型返回内容]:\n{content}")
+    # 测试 1: 关闭 thinking
+    print("-" * 60)
+    print("[TEST 1] enable_thinking=False")
+    print("-" * 60)
+    
+    start_test1 = time.time()
+    content1, total_time1 = process_article_with_qwen(
+        test_title, test_link, enable_thinking=False
+    )
+    end_test1 = time.time()
+    
+    print(f"✓ 请求总耗时：{total_time1:.2f} 秒")
+    print(f"✓ 模型返回内容:\n{content1}")
+    
+    # 测试 2: 开启 thinking
+    print()
+    print("-" * 60)
+    print("[TEST 2] enable_thinking=True")
+    print("-" * 60)
+    
+    start_test2 = time.time()
+    content2, total_time2 = process_article_with_qwen(
+        test_title, test_link, enable_thinking=True
+    )
+    end_test2 = time.time()
+    
+    print(f"✓ 请求总耗时：{total_time2:.2f} 秒")
+    print(f"✓ 模型返回内容:\n{content2}")
+    
+    # 对比结果
+    print()
+    print("=" * 60)
+    print("[PERFORMANCE COMPARISON]")
+    print("=" * 60)
+    time_diff = total_time2 - total_time1
+    
+    print(f"关闭 thinking 耗时：{total_time1:.2f} 秒")
+    print(f"开启 thinking 耗时：{total_time2:.2f} 秒")
+    print(f"时间差：{abs(time_diff):.2f} 秒")
+    print(f"思考额外耗时：{time_diff:.2f} 秒") if time_diff > 0 else print(f"节省时间：{abs(time_diff):.2f} 秒")

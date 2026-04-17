@@ -96,7 +96,7 @@ services:
 
   # Qwen3-Coder-Next Model Service
   qwen:
-    enabled: true
+    enabled: false
     image:
       repository: "vllm/vllm-openai"
       tag: "v0.15.0"
@@ -182,21 +182,20 @@ services:
       - "--max-num-seqs"
       - "32"
 
-  # Step-3.5-Flash Model Service
-  step:
+  # gemma Model Service
+  gemma:
     enabled: false
     image:
       repository: "vllm/vllm-openai"
-      tag: "nightly"
-      pullPolicy: Always
+      tag: "gemma4"
+      pullPolicy: IfNotPresent
     replicaCount: 1
-    # env vars removed - using BF16 instead of FP8 for better B200 compatibility
     model:
-      name: "stepfun-ai/Step-3.5-Flash"
-      path: "/models/Step-3.5-Flash"
+      name: "google/gemma-4-E4B-it"
+      path: "/models/gemma-4-E4B-it"
     resources:
       limits:
-        nvidia.com/gpu: 4
+        nvidia.com/gpu: 1
     affinity:
       nodeAffinity:
         requiredDuringSchedulingIgnoredDuringExecution:
@@ -205,29 +204,32 @@ services:
             - key: memorysize
               operator: In
               values:
-              - 192GB
-            - key: kubernetes.io/hostname
-              operator: In
-              values:
-              - "node1b-1"
+              - 32GB
     service:
       port: 8004
     extraArgs:
       - "--gpu-memory-utilization"
       - "0.95"
-      - "--served-model-name"
-      - "step3p5-flash"
       - "--tensor-parallel-size"
-      - "4"
-      - "--enable-expert-parallel"
-      - "--reasoning-parser"
-      - "step3p5"
-      - "--enable-auto-tool-choice"
+      - "1"
+      # - "--max-model-len"
+      # - "32768"
       - "--tool-call-parser"
-      - "step3p5"
-      - "--trust-remote-code"
+      - "gemma4"
+      - "--reasoning-parser"
+      - "gemma4"
+      - "--enable-auto-tool-choice"
+      - "--async-scheduling"
       - "--dtype"
-      - "bfloat16"
+      - "auto"      
+      # Chat template for reasoning and tool calling
+      - "--chat-template"
+      - "examples/tool_chat_template_gemma4.jinja"      
+      # Audio and image support arguments
+      - "--limit-mm-per-prompt.image"
+      - "4"
+      - "--limit-mm-per-prompt.audio"
+      - "1"
 
   # Qwen3-ASR Model Service
   asr:
@@ -272,19 +274,9 @@ services:
   tts:
     enabled: false
     image:
-      repository: "vllm/vllm-openai"
-      tag: "v0.14.0"
-      pullPolicy: Always
-    bootstrap: |
-      echo "Cloning vllm-omni repository..."
-      git clone --depth 1 https://github.com/vllm-project/vllm-omni.git /tmp/vllm-omni
-      echo "Installing vllm-omni from source..."
-      pip install -e /tmp/vllm-omni
-      echo "Installing qwen-tts..."
-      pip install qwen-tts
-      echo "Installing flash-attn..."
-      pip install -U flash-attn --no-build-isolation
-      echo "Bootstrap complete!"
+      repository: "vllm/vllm-omni"
+      tag: "v0.16.0"
+      pullPolicy: IfNotPresent
     replicaCount: 1
     model:
       name: "Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice"
@@ -300,21 +292,31 @@ services:
             - key: memorysize
               operator: In
               values:
-              - 16GB
+              - 20GB
+            - key: kubernetes.io/hostname
+              operator: In
+              values:
+              - "node1a-2"
     service:
       port: 8006
     extraArgs:
-      - "--tensor-parallel-size"
-      - "1"
-      - "--gpu-memory-utilization"
-      - "0.85"
-      - "--max-model-len"
-      - "4096"
-      - "--max-num-seqs"
-      - "128"
-      - "--trust-remote-code"
-      - "--dtype"
-      - "float16"
+        - "--stage-configs-path"
+        - "vllm_omni/model_executor/stage_configs/qwen3_tts.yaml"
+        - "--omni"
+        # - "--chat-template"
+        # - "'{% for message in messages %}{{ message['content'] }}{% endfor %}'"
+        # - "--served-model-name"
+        # - "Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice"
+        - "--tensor-parallel-size"
+        - "1"
+        - "--trust-remote-code"
+        - "--gpu-memory-utilization"
+        - "0.9"
+        - "--dtype"
+        - "bfloat16"
+        - "--kv-cache-dtype"
+        - "auto"
+        - "--enforce-eager"
 
   # GLM-5 Model Service
   glm5:
@@ -364,7 +366,7 @@ services:
       - "glm-5-fp8"
       - "--trust-remote-code"         
 
-  # MiniMax-M2.5 Model Service
+  # MiniMax-M2.7 Model Service
   minimax:
     enabled: false
     image:
@@ -372,10 +374,9 @@ services:
       tag: "nightly"
       pullPolicy: Always
     replicaCount: 1
-    bootstrap: "pip install -U transformers"
     model:
-      name: "MiniMaxAI/MiniMax-M2.5"
-      path: "/models/MiniMax-M2.5"
+      name: "MiniMaxAI/MiniMax-M2.7"
+      path: "/models/MiniMax-M2.7"
     resources:
       limits:
         nvidia.com/gpu: 4
@@ -407,19 +408,27 @@ services:
       - "--trust-remote-code"         
 
   # Qwen3.5-27B Model Service
-  qwen35b:
+  qwen36:
     enabled: true
     image:
       repository: "vllm/vllm-openai"
-      tag: "nightly-755356b3d18d8079b1b115dfd2111dc1accdb764"
-      pullPolicy: Always
+      tag: "v0.19.0"
+      pullPolicy: IfNotPresent
     replicaCount: 1
     model:
-      name: "Qwen/Qwen3.5-35B-A3B"
-      path: "/models/Qwen3.5-35B-A3B"
+      name: "Qwen/Qwen3.6-35B-A3B"
+      path: "/models/Qwen3.6-35B-A3B"
     resources:
       limits:
         nvidia.com/gpu: 2
+    extraVolumes:
+      - name: dshm
+        emptyDir:
+          medium: Memory
+          sizeLimit: 16Gi
+    extraVolumeMounts:
+      - name: dshm
+        mountPath: /dev/shm
     affinity:
       nodeAffinity:
         requiredDuringSchedulingIgnoredDuringExecution:
@@ -440,9 +449,17 @@ services:
       - "qwen3_coder"
       - "--enable-auto-tool-choice"
       - "--max-model-len"
-      - "262144"
+      - "131072"
       - "--reasoning-parser"
       - "qwen3"
+      - "--dtype"
+      - "auto"
+      - "--speculative-config.method"
+      - "qwen3_next_mtp"
+      - "--speculative-config.num_speculative_tokens"
+      - "2"
+      # - "--language-model-only"
+      # - "--enable-chunked-prefill"
       # - "--enforce-eager"
 
 
@@ -475,11 +492,11 @@ ingress:
         - path: /
           pathType: Prefix
           serviceName: glm
-    - host: step.aggpf.gpu-k8s.cloudcore-tu.net
+    - host: gemma4.aggpf.gpu-k8s.cloudcore-tu.net
       paths:
         - path: /
           pathType: Prefix
-          serviceName: step
+          serviceName: gemma
     - host: asr.aggpf.gpu-k8s.cloudcore-tu.net
       paths:
         - path: /
@@ -500,11 +517,11 @@ ingress:
         - path: /
           pathType: Prefix
           serviceName: minimax
-    - host: aggpf-qwen35-35b.gpu-k8s.cloudcore-tu.net
+    - host: aggpf-qwen36.gpu-k8s.cloudcore-tu.net
       paths:
         - path: /
           pathType: Prefix
-          serviceName: qwen35b
+          serviceName: qwen36
 
   tls:
     - hosts:
@@ -512,10 +529,10 @@ ingress:
         - embedding.aggpf.gpu-k8s.cloudcore-tu.net
         - aggpf-qwen3coder-next.gpu-k8s.cloudcore-tu.net
         - glm.aggpf.gpu-k8s.cloudcore-tu.net
-        - step.aggpf.gpu-k8s.cloudcore-tu.net
+        - gemma4.aggpf.gpu-k8s.cloudcore-tu.net
         - asr.aggpf.gpu-k8s.cloudcore-tu.net
         - tts.aggpf.gpu-k8s.cloudcore-tu.net
         - glm5.aggpf.gpu-k8s.cloudcore-tu.net
         - minimax.aggpf.gpu-k8s.cloudcore-tu.net
-        - aggpf-qwen35-35b.gpu-k8s.cloudcore-tu.net
+        - aggpf-qwen36.gpu-k8s.cloudcore-tu.net
       secretName: vllm-tls-secret

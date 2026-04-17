@@ -53,10 +53,16 @@ spec:
           volumeMounts:
             - name: model-cache
               mountPath: {{ $.Values.common.persistence.mountPath }}
+            {{- if $service.extraVolumeMounts }}
+            {{- toYaml $service.extraVolumeMounts | nindent 12 }}
+            {{- end }}
       volumes:
         - name: model-cache
           persistentVolumeClaim:
             claimName: {{ $.Release.Name }}-pvc
+        {{- if $service.extraVolumes }}
+        {{- toYaml $service.extraVolumes | nindent 8 }}
+        {{- end }}
       nodeSelector:
         {{- toYaml $service.nodeSelector | nindent 8 }}
       {{- if or $service.affinity $.Values.common.affinity }}
