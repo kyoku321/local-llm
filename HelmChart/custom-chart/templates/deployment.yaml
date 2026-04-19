@@ -50,6 +50,9 @@ spec:
                 secretKeyRef:
                   name: {{ $.Release.Name }}-secret
                   key: HF_TOKEN
+            {{- if $service.env }}
+            {{- toYaml $service.env | nindent 12 }}
+            {{- end }}
           volumeMounts:
             - name: model-cache
               mountPath: {{ $.Values.common.persistence.mountPath }}

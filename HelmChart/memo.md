@@ -70,6 +70,8 @@ hf download Qwen/Qwen3.6-35B-A3B-FP8 --local-dir /models/Qwen3.6-35B-A3B-FP8
 
 hf download Qwen/Qwen3.5-27B --local-dir /models/Qwen3.5-27B
 
+hf download Qwen/Qwen3-Omni-30B-A3B-Instruct --local-dir /models/Qwen3-Omni-30B-A3B-Instruct
+
 
 hf download google/gemma-4-E4B-it --local-dir /models/gemma-4-E4B-it
 
