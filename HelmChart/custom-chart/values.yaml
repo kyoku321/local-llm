@@ -20,9 +20,7 @@ common:
   hfToken: "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"
 
 # Individual vLLM service definitions
-# You can add more services here by adding a new key
 services:
-  # LLM Model Service
   llm:
     enabled: true
     replicaCount: 1
@@ -43,7 +41,6 @@ services:
               - 80GB
     service:
       port: 8000
-    # Additional arguments for vLLM serve command
     extraArgs:
       - "--tensor-parallel-size"
       - "1"
@@ -59,7 +56,6 @@ services:
       - "--dtype"
       - "bfloat16"
 
-  # Embedding Model Service
   embedding:
     enabled: true
     replicaCount: 1
@@ -94,41 +90,6 @@ services:
       - "--dtype"
       - "float16"
 
-  # Qwen3-omni Model Service
-  qwen3omni:
-    enabled: true
-    image:
-      repository: "vllm/vllm-omni"
-      tag: "v0.18.0"
-      pullPolicy: IfNotPresent
-    replicaCount: 1
-    model:
-      name: "Qwen/Qwen3-omni-30B-A3B-Instruct"
-      path: "/models/Qwen3-Omni-30B-A3B-Instruct"
-    resources:
-      limits:
-        nvidia.com/gpu: 1
-    affinity:
-      nodeAffinity:
-        requiredDuringSchedulingIgnoredDuringExecution:
-          nodeSelectorTerms:
-          - matchExpressions:
-            - key: memorysize
-              operator: In
-              values:
-              - 80GB
-    service:
-      port: 8002
-    extraArgs:
-      - "--omni"
-      - "--max-model-len"
-      - "32768"
-      - "--gpu-memory-utilization"
-      - "0.35"
-      - "--trust-remote-code"
-      - "--tensor-parallel-size"
-      - "2"
-
   # GLM-4.7-Flash Model Service
   glm:
     enabled: false
@@ -137,9 +98,7 @@ services:
       tag: "nightly"
       pullPolicy: Always
     replicaCount: 1
-    # bootstrap: "pip install -U transformers"
     model:
-      # name: "zai-org/GLM-4.7-Flash"
       path: "/models/GLM-4.7-Flash"
     resources:
       limits:
@@ -153,10 +112,6 @@ services:
               operator: In
               values:
               - 80GB
-            # - key: kubernetes.io/hostname
-            #   operator: In
-            #   values:
-            #   - "node1b-1"
     service:
       port: 8003
     extraArgs:
@@ -213,8 +168,6 @@ services:
       - "0.95"
       - "--tensor-parallel-size"
       - "1"
-      # - "--max-model-len"
-      # - "32768"
       - "--tool-call-parser"
       - "gemma4"
       - "--reasoning-parser"
@@ -222,11 +175,9 @@ services:
       - "--enable-auto-tool-choice"
       - "--async-scheduling"
       - "--dtype"
-      - "auto"      
-      # Chat template for reasoning and tool calling
+      - "auto"
       - "--chat-template"
-      - "examples/tool_chat_template_gemma4.jinja"      
-      # Audio and image support arguments
+      - "examples/tool_chat_template_gemma4.jinja"
       - "--limit-mm-per-prompt.image"
       - "4"
       - "--limit-mm-per-prompt.audio"
@@ -301,23 +252,19 @@ services:
     service:
       port: 8006
     extraArgs:
-        - "--stage-configs-path"
-        - "vllm_omni/model_executor/stage_configs/qwen3_tts.yaml"
-        - "--omni"
-        # - "--chat-template"
-        # - "'{% for message in messages %}{{ message['content'] }}{% endfor %}'"
-        # - "--served-model-name"
-        # - "Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice"
-        - "--tensor-parallel-size"
-        - "1"
-        - "--trust-remote-code"
-        - "--gpu-memory-utilization"
-        - "0.9"
-        - "--dtype"
-        - "bfloat16"
-        - "--kv-cache-dtype"
-        - "auto"
-        - "--enforce-eager"
+      - "--stage-configs-path"
+      - "vllm_omni/model_executor/stage_configs/qwen3_tts.yaml"
+      - "--omni"
+      - "--tensor-parallel-size"
+      - "1"
+      - "--trust-remote-code"
+      - "--gpu-memory-utilization"
+      - "0.9"
+      - "--dtype"
+      - "bfloat16"
+      - "--kv-cache-dtype"
+      - "auto"
+      - "--enforce-eager"
 
   # GLM-5 Model Service
   glm5:
@@ -365,7 +312,7 @@ services:
       - "--enable-auto-tool-choice"
       - "--served-model-name"
       - "glm-5-fp8"
-      - "--trust-remote-code"         
+      - "--trust-remote-code"
 
   # MiniMax-M2.7 Model Service
   minimax:
@@ -406,7 +353,7 @@ services:
       - "--reasoning-parser"
       - "minimax_m2_append_think"
       - "--enable-auto-tool-choice"
-      - "--trust-remote-code"         
+      - "--trust-remote-code"
 
   # Qwen3.5-27B Model Service
   qwen36:
@@ -459,10 +406,6 @@ services:
       - "qwen3_next_mtp"
       - "--speculative-config.num_speculative_tokens"
       - "2"
-      # - "--language-model-only"
-      # - "--enable-chunked-prefill"
-      # - "--enforce-eager"
-
 
 # Ingress Configuration
 ingress:
@@ -470,8 +413,8 @@ ingress:
   className: "nginx"
   annotations:
     nginx.ingress.kubernetes.io/proxy-body-size: "0"
-    cert-manager.io/cluster-issuer: "letsencrypt"
-  
+    cert-manager.io.cluster-issuer: "letsencrypt"
+
   hosts:
     - host: llm.aggpf.gpu-k8s.cloudcore-tu.net
       paths:
@@ -483,11 +426,6 @@ ingress:
         - path: /
           pathType: Prefix
           serviceName: embedding
-    - host: aggpf-qwen3-omni.gpu-k8s.cloudcore-tu.net
-      paths:
-        - path: /
-          pathType: Prefix
-          serviceName: qwen3omni
     - host: glm.aggpf.gpu-k8s.cloudcore-tu.net
       paths:
         - path: /
@@ -528,7 +466,6 @@ ingress:
     - hosts:
         - llm.aggpf.gpu-k8s.cloudcore-tu.net
         - embedding.aggpf.gpu-k8s.cloudcore-tu.net
-        - aggpf-qwen3-omni.gpu-k8s.cloudcore-tu.net
         - glm.aggpf.gpu-k8s.cloudcore-tu.net
         - gemma4.aggpf.gpu-k8s.cloudcore-tu.net
         - asr.aggpf.gpu-k8s.cloudcore-tu.net

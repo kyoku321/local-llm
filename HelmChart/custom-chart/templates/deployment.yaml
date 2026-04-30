@@ -34,10 +34,10 @@ spec:
               {{- end }}
               vllm serve {{ $service.model.path }} \
                 --host 0.0.0.0 \
-                --port {{ $service.service.port }} \
+                --port "{{ $service.service.port }}" \
                 {{- if $service.extraArgs }}
                 {{- range $service.extraArgs }}
-                {{ . }} \
+                '{{ . }}' \
                 {{- end }}
                 {{- end }}
           ports:
@@ -64,7 +64,7 @@ spec:
           persistentVolumeClaim:
             claimName: {{ $.Release.Name }}-pvc
         {{- if $service.extraVolumes }}
-        {{- toYaml $service.extraVolumes | nindent 8 }}
+        {{- $service.extraVolumes | toYaml | nindent 8 }}
         {{- end }}
       nodeSelector:
         {{- toYaml $service.nodeSelector | nindent 8 }}
