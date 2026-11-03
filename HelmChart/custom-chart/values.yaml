@@ -63,11 +63,11 @@ services:
   #             - "node1b-1"
 
   # Qwen3.8-27B Model Service
-  qwen38:
+  qwen:
     enabled: true
     image:
       repository: "vllm/vllm-openai"
-      tag: "v0.32.0-cu129"
+      tag: "v0.33.0"
       pullPolicy: IfNotPresent
     replicaCount: 1
     model:
@@ -96,20 +96,32 @@ services:
     service:
       port: 8010
     extraArgs:
+      # 并行与显存配置
       - "--tensor-parallel-size"
       - "2"
       - "--gpu-memory-utilization"
       - "0.9"
-      - "--tool-call-parser"
-      - "qwen3_coder"
-      - "--enable-auto-tool-choice"
       - "--max-model-len"
       - "131072"
-      - "--reasoning-parser"
+      # [可选优化] 降低128K上下文下的KV Cache显存
+      - "--kv-cache-dtype"
+      - "fp8"
+      # 模型名称与安全(规范对外接口的模型名)
+      - "--served-model-name"
+      - "Qwen/Qwen3.8-27B"
+      - "--trust-remote-code"
+      # 工具调用 (Tool Calling)
+      - "--enable-auto-tool-choice"
+      - "--tool-call-parser"
+      - "qwen3_coder"
+      # 深度思考/推理 (Reasoning)
+      - "--reasoning-parser" #配合 reasoning-parser 启用思考提取
       - "qwen3"
+      # 运维与日志优化
+      - "--disable-log-requests" #避免k8s日志被prompt打满
+      # 多模态
       - "--mm-encoder-tp-mode"
       - "data"
-      - "--enable-prefix-caching"
 
 # Ingress Configuration
 ingress:
@@ -120,13 +132,13 @@ ingress:
     cert-manager.io.cluster-issuer: "letsencrypt"
 
   hosts:
-    - host: aggpf-qwen38.gpu-k8s.cloudcore-tu.net
+    - host: aggpf-qwen.gpu-k8s.cloudcore-tu.net
       paths:
         - path: /
           pathType: Prefix
-          serviceName: qwen38
+          serviceName: qwen
 
   tls:
     - hosts:
-        - aggpf-qwen38.gpu-k8s.cloudcore-tu.net
+        - aggpf-qwen.gpu-k8s.cloudcore-tu.net
       secretName: vllm-tls-secret
