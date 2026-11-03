@@ -1,0 +1,36 @@
+kind: Pod
+apiVersion: v1
+metadata:
+  name: test-pod
+spec:
+  containers:
+  - name: pythonserver
+    image: pytorch/pytorch:2.3.0-cuda12.1-cudnn8-devel
+    command: ["/bin/sh", "-c"]
+    args:
+      - |
+        set -e
+        apt-get update && apt-get install -y git && \
+        tail -f /dev/null
+    ports:
+    - containerPort: 80
+      name: "http"
+    resources:
+      limits:
+        nvidia.com/gpu: 1
+    volumeMounts:
+    - mountPath: "/models"
+      name: model-pvc
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: memorysize
+            operator: In
+            values:
+            - 80GB
+  volumes:
+  - name: model-pvc
+    persistentVolumeClaim:
+      claimName: local-llm-pvc

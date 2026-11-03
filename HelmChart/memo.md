@@ -75,6 +75,11 @@ hf download Qwen/Qwen3-Omni-30B-A3B-Instruct --local-dir /models/Qwen3-Omni-30B-
 
 hf download google/gemma-4-E4B-it --local-dir /models/gemma-4-E4B-it
 
+hf download nvidia/LocateAnything-3B --local-dir /models/LocateAnything-3B
+
+hf download Qwen/Qwen3.8-27B --local-dir /models/Qwen3.8-27B
+
+
 curl -X POST http://localhost:8000/v1/chat/completions -H "Content-Type: application/json" -d '{"model": "/models/gpt-oss-20b","messages": [{"role": "system","content": "帮把下面日文翻译为中文。"},{"role": "user","content": "，ベライゾンは、競争激化と顧客獲得の低迷を受け、大規模な人員削減と約200店舗のフランチャイズ化を発表しました。新CEOは、より効率的でアグレッシブな運営モデルへの転換を掲げ、顧客ロイヤリティとリテンションの向上を目指します。このリストラは、同社史上最大規模のものです。"}],"max_tokens": 2048,"temperature": 0.7}'
 
 curl -X POST http://vllm.aggpf.gpu-k8s.cloudcore-tu.net/v1/chat/completions -H "Content-Type: application/json" -d '{"model": "/models/gpt-oss-20b","messages": [{"role": "system","content": "帮把下面日文翻译为中文。"},{"role": "user","content": "，ベライゾンは、競争激化と顧客獲得の低迷を受け、大規模な人員削減と約200店舗のフランチャイズ化を発表しました。新CEOは、より効率的でアグレッシブな運営モデルへの転換を掲げ、顧客ロイヤリティとリテンションの向上を目指します。このリストラは、同社史上最大規模のものです。"}],"max_tokens": 2048,"temperature": 0.7}'
